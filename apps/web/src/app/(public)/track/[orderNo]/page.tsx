@@ -32,10 +32,10 @@ export default function TrackingPage() {
   const [error, setError] = useState<string | null>(null);
   const [livePos, setLivePos] = useState<{ lat: number; lng: number } | null>(null);
   const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstance = useRef<google.maps.Map | null>(null);
-  const markerRef = useRef<google.maps.Marker | null>(null);
+  // Use 'any' to avoid needing @types/google.maps
+  const mapInstance = useRef<any>(null);
+  const markerRef = useRef<any>(null);
 
-  // Fetch initial tracking data
   useEffect(() => {
     fetch(`/api/tracking/${orderNo}`)
       .then((r) => r.json())
@@ -44,11 +44,9 @@ export default function TrackingPage() {
       .finally(() => setLoading(false));
   }, [orderNo]);
 
-  // SSE — live GPS updates
   useEffect(() => {
     if (!data) return;
     if (!["IN_TRANSIT", "OUT_FOR_DELIVERY"].includes(data.status)) return;
-
     const es = new EventSource(`/api/tracking/${orderNo}/stream`);
     es.onmessage = (e) => {
       try {
@@ -59,32 +57,25 @@ export default function TrackingPage() {
     return () => es.close();
   }, [data?.status, orderNo]);
 
-  // Google Maps
   useEffect(() => {
     if (!mapRef.current || !data) return;
     if (typeof window === "undefined" || !(window as any).google) return;
-
-    const deliveryCoords = data.liveLocation ?? { lat: 3.1390, lng: 101.6869 }; // KL fallback
-
-    mapInstance.current = new google.maps.Map(mapRef.current, {
-      center: deliveryCoords,
-      zoom: 14,
-      styles: DARK_MAP_STYLE,
-      disableDefaultUI: true,
-      zoomControl: true,
+    const g = (window as any).google;
+    const deliveryCoords = data.liveLocation ?? { lat: 3.1390, lng: 101.6869 };
+    mapInstance.current = new g.maps.Map(mapRef.current, {
+      center: deliveryCoords, zoom: 14,
+      disableDefaultUI: true, zoomControl: true,
     });
-
-    markerRef.current = new google.maps.Marker({
+    markerRef.current = new g.maps.Marker({
       position: deliveryCoords,
       map: mapInstance.current,
-      icon: { url: "/truck-marker.svg", scaledSize: new google.maps.Size(40, 40) },
     });
   }, [data]);
 
-  // Update marker on live pos change
   useEffect(() => {
     if (!livePos || !markerRef.current || !mapInstance.current) return;
-    const pos = new google.maps.LatLng(livePos.lat, livePos.lng);
+    const g = (window as any).google;
+    const pos = new g.maps.LatLng(livePos.lat, livePos.lng);
     markerRef.current.setPosition(pos);
     mapInstance.current.panTo(pos);
   }, [livePos]);
@@ -96,14 +87,12 @@ export default function TrackingPage() {
 
   return (
     <div className="min-h-screen bg-gray-950 text-gray-100">
-      {/* Brand bar */}
       <header className="flex items-center gap-3 px-6 py-4 border-b border-gray-800">
         <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold text-sm">L</div>
         <span className="font-semibold text-sm">LogiTrack MY</span>
       </header>
 
       <div className="max-w-2xl mx-auto px-4 py-8 space-y-6">
-        {/* Order number + status */}
         <div className="flex items-start justify-between">
           <div>
             <p className="text-xs text-gray-500 uppercase tracking-widest mb-1">Tracking</p>
@@ -112,7 +101,6 @@ export default function TrackingPage() {
           <StatusBadge status={data.status} />
         </div>
 
-        {/* ETA banner */}
         {data.eta && data.status !== "DELIVERED" && (
           <div className="rounded-xl bg-blue-950 border border-blue-800 p-4 flex items-center gap-4">
             <div className="text-blue-400 text-2xl">📦</div>
@@ -125,31 +113,25 @@ export default function TrackingPage() {
           </div>
         )}
 
-        {/* Delivered banner */}
         {data.status === "DELIVERED" && (
           <div className="rounded-xl bg-green-950 border border-green-800 p-4 flex items-center gap-4">
             <span className="text-3xl">✅</span>
             <div>
               <p className="font-semibold text-green-400">Delivered!</p>
               <p className="text-sm text-green-600">
-                {data.delivery.actual
-                  ? new Date(data.delivery.actual).toLocaleString("en-MY")
-                  : "Delivery complete"}
+                {data.delivery.actual ? new Date(data.delivery.actual).toLocaleString("en-MY") : "Delivery complete"}
               </p>
             </div>
           </div>
         )}
 
-        {/* Progress stepper */}
         <div className="rounded-xl bg-gray-900 border border-gray-800 p-5">
           <div className="flex items-start">
             {STATUS_STEPS.map((step, i) => (
               <div key={step.key} className="flex-1 flex flex-col items-center relative">
-                {/* Connector line */}
                 {i < STATUS_STEPS.length - 1 && (
                   <div className={`absolute top-4 left-1/2 w-full h-0.5 ${i < currentStepIdx ? "bg-blue-600" : "bg-gray-700"}`} />
                 )}
-                {/* Dot */}
                 <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold
                   ${i < currentStepIdx ? "bg-blue-600 text-white" : i === currentStepIdx ? "bg-blue-500 text-white ring-4 ring-blue-900" : "bg-gray-800 text-gray-600 border border-gray-700"}`}>
                   {i < currentStepIdx ? "✓" : i + 1}
@@ -162,18 +144,13 @@ export default function TrackingPage() {
           </div>
         </div>
 
-        {/* Live map */}
         {livePos && (
           <div>
             <p className="text-xs text-gray-500 uppercase tracking-widest mb-2">Live location</p>
             <div ref={mapRef} className="w-full h-56 rounded-xl bg-gray-800 overflow-hidden" />
-            <p className="text-xs text-gray-600 mt-1">
-              Updated {new Date().toLocaleTimeString("en-MY")}
-            </p>
           </div>
         )}
 
-        {/* Addresses */}
         <div className="rounded-xl bg-gray-900 border border-gray-800 divide-y divide-gray-800">
           <div className="p-4 flex gap-3">
             <span className="text-yellow-500 mt-0.5">●</span>
@@ -191,7 +168,6 @@ export default function TrackingPage() {
           </div>
         </div>
 
-        {/* Driver */}
         {data.driver && (
           <div className="rounded-xl bg-gray-900 border border-gray-800 p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -203,46 +179,34 @@ export default function TrackingPage() {
                 <p className="text-xs text-gray-500">Your driver</p>
               </div>
             </div>
-            <a
-              href={`tel:${data.driver.phone}`}
-              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 transition text-white text-sm font-medium px-4 py-2 rounded-lg"
-            >
+            <a href={`tel:${data.driver.phone}`}
+              className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 transition text-white text-sm font-medium px-4 py-2 rounded-lg">
               📞 Call
             </a>
           </div>
         )}
 
-        {/* Event timeline */}
-        <div>
-          <p className="text-xs text-gray-500 uppercase tracking-widest mb-3">Tracking history</p>
-          <div className="space-y-1">
-            {[...data.events].reverse().map((ev, i) => (
-              <div key={i} className="flex gap-4 py-3 border-b border-gray-900 last:border-0">
-                <div className="text-right min-w-[80px]">
-                  <p className="text-xs text-gray-600">
-                    {new Date(ev.ts).toLocaleTimeString("en-MY", { hour: "2-digit", minute: "2-digit" })}
-                  </p>
-                  <p className="text-xs text-gray-700">
-                    {new Date(ev.ts).toLocaleDateString("en-MY", { day: "numeric", month: "short" })}
-                  </p>
+        {data.events.length > 0 && (
+          <div>
+            <p className="text-xs text-gray-500 uppercase tracking-widest mb-3">Tracking history</p>
+            <div className="space-y-1">
+              {[...data.events].reverse().map((ev, i) => (
+                <div key={i} className="flex gap-4 py-3 border-b border-gray-900 last:border-0">
+                  <div className="text-right min-w-[80px]">
+                    <p className="text-xs text-gray-600">
+                      {new Date(ev.ts).toLocaleTimeString("en-MY", { hour: "2-digit", minute: "2-digit" })}
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <div className={`w-2.5 h-2.5 rounded-full mt-1 ${i === 0 ? "bg-blue-500" : "bg-gray-700"}`} />
+                  </div>
+                  <p className="text-sm text-gray-400 flex-1 pt-0.5">{ev.message}</p>
                 </div>
-                <div className="flex flex-col items-center">
-                  <div className={`w-2.5 h-2.5 rounded-full mt-1 ${i === 0 ? "bg-blue-500" : "bg-gray-700"}`} />
-                  {i < data.events.length - 1 && <div className="w-0.5 flex-1 bg-gray-800 mt-1" />}
-                </div>
-                <p className="text-sm text-gray-400 flex-1 pt-0.5">{ev.message}</p>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
-
-      {/* Load Google Maps */}
-      <script
-        src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_KEY}`}
-        async
-        defer
-      />
     </div>
   );
 }
@@ -287,12 +251,3 @@ function ErrorState({ message }: { message: string }) {
     </div>
   );
 }
-
-const DARK_MAP_STYLE = [
-  { elementType: "geometry", stylers: [{ color: "#1a1f2e" }] },
-  { elementType: "labels.text.stroke", stylers: [{ color: "#1a1f2e" }] },
-  { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
-  { featureType: "road", elementType: "geometry", stylers: [{ color: "#2b3045" }] },
-  { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#9ca5b3" }] },
-  { featureType: "water", elementType: "geometry", stylers: [{ color: "#17263c" }] },
-];
