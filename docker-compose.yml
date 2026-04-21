@@ -1,0 +1,52 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: timescale/timescaledb:latest-pg15
+    environment:
+      POSTGRES_USER: logitrack
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: logitrack_my
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U logitrack"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    command: redis-server --appendonly yes
+
+  minio:
+    image: minio/minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: logitrack
+      MINIO_ROOT_PASSWORD: password123
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - miniodata:/data
+
+  # OSRM for Malaysia road routing (first run: download OSM data)
+  # osrm:
+  #   image: osrm/osrm-backend
+  #   ports:
+  #     - "5000:5000"
+  #   volumes:
+  #     - ./osrm-data:/data
+  #   command: osrm-routed --algorithm mld /data/malaysia-latest.osrm
+
+volumes:
+  pgdata:
+  redisdata:
+  miniodata:

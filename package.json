@@ -1,0 +1,33 @@
+{
+  "name": "logitrack-my",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Logistics SaaS platform for Malaysia \u2014 orders, shipments, warehousing, cross-border",
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "services/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "db:migrate": "cd packages/db && npx prisma@5.14.0 migrate dev",
+    "db:seed": "cd packages/db && npx prisma db seed",
+    "lint": "turbo run lint",
+    "type-check": "turbo run type-check",
+    "dev:web": "cd apps/web && npm install && npm run dev",
+    "db:generate": "cd packages/db && npx prisma@5.14.0 generate",
+    "db:push": "cd packages/db && npx prisma@5.14.0 db push",
+    "install:web": "cd apps/web && npm install"
+  },
+  "devDependencies": {
+    "turbo": "^1.13.0",
+    "typescript": "^5.4.0",
+    "@types/node": "^20.0.0",
+    "eslint": "^8.57.0",
+    "prettier": "^3.2.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
