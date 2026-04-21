@@ -578,9 +578,6 @@ video {
 .min-h-screen {
   min-height: 100vh;
 }
-.w-0\.5 {
-  width: 0.125rem;
-}
 .w-10 {
   width: 2.5rem;
 }
@@ -998,10 +995,6 @@ video {
 .text-gray-600 {
   --tw-text-opacity: 1;
   color: rgb(75 85 99 / var(--tw-text-opacity, 1));
-}
-.text-gray-700 {
-  --tw-text-opacity: 1;
-  color: rgb(55 65 81 / var(--tw-text-opacity, 1));
 }
 .text-gray-800 {
   --tw-text-opacity: 1;
